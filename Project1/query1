@@ -1,0 +1,95 @@
+﻿DROP TABLE IF EXISTS bandMember;
+DROP TABLE IF EXISTS likes;
+DROP TABLE IF EXISTS band;
+DROP TABLE IF EXISTS fan;
+
+
+/* PART 1 */
+
+create table fan (
+	fanID int,
+	fanName varchar(100),
+	primary key (fanID)
+);
+
+create table band (
+	bandID int,
+	bandName varchar(100),
+	genre varchar(100),
+	year int,
+	primary key (bandID)
+);
+
+
+create table likes (
+	fanID int,
+	bandID int,
+	primary key (fanID, bandID),
+	foreign key (fanID) references fan,
+	foreign key (bandID) references band
+);
+
+create table bandMember (
+	memID int,
+	memName varchar(100),
+	bandID int,
+	nationality varchar(100),
+	primary key (memID),
+	foreign key (bandID) references band
+);
+
+
+/* END OF PART 1 */
+
+
+
+/* INSERT VALUES */
+
+insert into fan values (1, 'Joe');
+insert into fan values (2, 'Michael');
+insert into fan values (3, 'Alan');
+insert into fan values (4, 'John');
+insert into fan values (5, 'Mark');
+insert into fan values (6, 'Justin');
+
+insert into band values (1, 'Villagers', 'Disco', 1990);
+insert into band values (2, 'Twilight', 'Jazz', 1991);
+insert into band values (3, 'Muse', 'Rock', 2000);
+insert into band values (4, 'Freedom', 'Rap', 1997);
+insert into band values (5, 'Liberty', 'Pop', 2008);
+
+insert into likes values (1, 3);
+insert into likes values (2, 3);
+insert into likes values (3, 1);
+insert into likes values (4, 4);
+insert into likes values (5, 4);
+insert into likes values (6, 4);
+insert into likes values (6, 5);
+
+insert into bandMember values (1, 'David Crockett', 2, 'American');
+insert into bandMember values (2, 'Matthew Bellamy', 3, 'British');
+insert into bandMember values (3, 'Justin Wong', 3, 'British');
+insert into bandMember values (4, 'Michael Smith', 1, 'German');
+insert into bandMember values (5, 'Alan Johnson', 1, 'French');
+insert into bandMember values (6, 'Kyle Nguyen', 3, 'British');
+insert into bandMember values (7, 'Allie Obrien', 2, 'American');
+insert into bandMember values (8, 'Samantha Brown', 2, 'British');
+insert into bandMember values (9, 'Tom Wang', 1, 'American');
+insert into bandMember values (10, 'Johnny Walker', 4, 'British');
+insert into bandMember values (11, 'Arnold Walter', 4, 'British');
+insert into bandMember values (12, 'Timothy Ricardo', 4, 'British');
+insert into bandMember values (13, 'Kyle Adams', 4, 'British');
+insert into bandMember values (14, 'Thomas Norman', 5, 'Australian');
+insert into bandMember values (15, 'Michael Andrew', 5, 'Norwegian');
+insert into bandMember values (16, 'Andrew Lewis', 5, 'African');
+insert into bandMember values (17, 'Sooyoung Davis', 5, 'Korean');
+insert into bandMember values (18, 'Choi Lee', 5, 'Korean');
+
+/* END OF INSERT VALUES */
+
+
+
+/* PART 2 */
+
+
+
