@@ -1,7 +1,20 @@
 ﻿DROP TABLE IF EXISTS bandMember;
+DROP VIEW IF EXISTS bandFans;
+DROP VIEW IF EXISTS fanLikeCount;
+DROP VIEW IF EXISTS hateRockBands;
+DROP VIEW IF EXISTS rareGenresWithMin;
+DROP VIEW IF EXISTS rareGenresWithoutMin;
+DROP VIEW IF EXISTS fansAllRockWithNotIn;
+DROP VIEW IF EXISTS fansAllRockWithNotExists;
+DROP VIEW IF EXISTS fansAllRockWithCount;
+DROP VIEW IF EXISTS rockBandsOnly;
+DROP VIEW IF EXISTS bandLowerThanAvgFans;
+DROP VIEW IF EXISTS numberOfFans;
+DROP VIEW IF EXISTS numberOfBands;
 DROP TABLE IF EXISTS likes;
 DROP TABLE IF EXISTS band;
 DROP TABLE IF EXISTS fan;
+
 
 
 /* PART 1 */
@@ -57,11 +70,20 @@ insert into band values (2, 'Twilight', 'Jazz', 1991);
 insert into band values (3, 'Muse', 'Rock', 2000);
 insert into band values (4, 'Freedom', 'Rap', 1997);
 insert into band values (5, 'Liberty', 'Pop', 2008);
+insert into band values (6, 'Anarchy', 'Rap', 2001);
+insert into band values (7, 'Peacekeepers', 'Disco', 1981);
+insert into band values (8, 'Flowers', 'Disco', 1976);
 
 insert into likes values (1, 3);
+insert into likes values (1, 5);
+insert into likes values (1, 7);
 insert into likes values (2, 3);
+insert into likes values (2, 8);
 insert into likes values (3, 1);
+insert into likes values (3, 7);
+insert into likes values (3, 8);
 insert into likes values (4, 4);
+insert into likes values (4, 6);
 insert into likes values (5, 4);
 insert into likes values (6, 4);
 insert into likes values (6, 5);
@@ -90,6 +112,145 @@ insert into bandMember values (18, 'Choi Lee', 5, 'Korean');
 
 
 /* PART 2 */
+
+/* View bandFans: List pairs of fans and bands they like.
+   The output schema should be: (fanID, fanName, bandID, bandName). */
+create view bandFans as
+select b.fanID, a.fanName, b.bandID, c.bandName
+from fan a, likes b, band c
+where a.fanID = b.fanID AND b.bandID = c.bandID;
+
+/* View fanLikeCount: List for each fan (identified by his ID 
+   and name) the number of bands that he likes. If a fan does 
+   not likes any band, this count should be zero. The output 
+   schema should be (fanID, fanName, bandNum) */
+create view fanLikeCount as
+select a.fanID, a.fanName, count(b.fanID) as bandNum
+from fan a NATURAL LEFT OUTER JOIN likes b
+group by a.fanID
+having count(*) >= 0; 
+
+/* View hateRockBands: List the fans (identified by their ID 
+   and name) that do not like any rock band. The output schema 
+   should be (fanID, fanName). */
+create view hateRockBands as
+select distinct a.fanID, a.fanName
+from (fan a NATURAL LEFT OUTER JOIN likes b), band c
+where a.fanID not in 
+	(select d.fanID
+	from likes d, band e
+	where d.bandID = e.bandID AND e.genre = 'Rock');
+
+/* List the genres for which we have the lowest number of bands. 
+   The output schema should be (genre) and the output should not 
+   contain duplicates. Provide two queries:
+	1. View rareGenresWithMin: one using the MIN aggregate function
+	2. View rareGenresWithoutMin: another without using MIN
+*/
+create view rareGenresWithMin as
+select distinct a.genre
+from band a
+where
+	(select count(*)
+	 from band 
+	 where genre = a.genre) = 
+	(select min(x.total)
+	 from 
+		(select count(*) as total
+		 from band
+		 group by genre) as x);
+
+create view rareGenresWithoutMin as
+select a.genre
+from band a
+group by a.genre
+having count(genre) <= ALL
+	(select count(genre) as total
+	from band
+	group by genre);
+
+/* List the fans (identified by their ID and name) that like every 
+   rock band. The output schema should be (fanID, fanName). Provide 
+   three SQL queries, using nested sub-queries in different ways:
+	1. View fansAllRockWithNotIn: with NOT IN tests
+	2. View fansAllRockWithNotExists: with NOT EXISTS tests
+	3. View fansAllRockWithCount: with COUNT aggregate functions
+*/
+/* Computes IDs of bands that have genre "Rock" */
+create view rockBandsOnly as
+select a.bandID
+from band a
+where a.bandID not in
+	(select b.bandID
+	 from band b
+	 where b.genre <> 'Rock');
+
+create view fansAllRockWithNotIn as
+select distinct a.fanID, z.fanName
+from likes a, fan z
+where a.fanID = z.fanID AND a.fanID not in
+	(select b.fanID
+	 from likes b, rockBandsOnly c
+	 where b.fanID not in
+		(select fanID
+		 from likes
+		 where bandID = c.bandID));
+
+create view fansAllRockWithNotExists as
+select fanID, fanName
+from fan a
+where not exists
+	(select b.bandID
+	 from rockBandsOnly b
+	 where not exists
+		(select c.bandID
+		 from likes c
+		 where c.fanID = a.fanID AND c.bandID = b.bandID));
+
+		
+
+create view fansAllRockWithCount as
+select a.fanID, z.fanName
+from likes a, fan z, band b
+where a.fanID = z.fanID AND b.bandID = a.bandID
+group by a.fanID, z.fanName
+having sum(case when b.genre='Rock' then 1 else 0 end) =
+	(select count(bandID)
+	 from rockBandsOnly y);
+	 
+
+/* View bandLowerThanAvgFans: List the bands(identified by their ID and 
+   name) that have a strictly lower number of fans than the average number
+   of fans for all bands of the same genre. The output schema should be
+   (bandID, bandName).
+*/
+
+/* Number of fans that like a specific genre */
+create view numberOfFans as
+select count(bandID) as numOfFans, genre
+from likes natural left outer join band
+group by genre;
+
+/* Number of bands for a specific genre */
+create view numberOfBands as
+select count(bandID) as numOfBands, genre
+from band
+group by genre;
+
+create view bandLowerThanAvgFans as
+select distinct b.bandID, a.bandName
+from band a, likes b, numberOfFans c, numberOfBands d
+where b.bandID = a.bandID
+group by b.bandID, a.bandName, c.numOfFans, d.numOfBands
+having count(b.bandID) < (c.numOfFans/d.numOfBands);
+
+
+	 
+
+
+
+
+
 
 
 
